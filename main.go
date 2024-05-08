@@ -10,14 +10,20 @@ import (
 type model struct {
 	choices  []string
 	cursor   int
-	selected map[int]struct{}
+	selected int
 	updates  map[int]string
 }
 
+const ADD_UPDATE = "add update"
+const LIST_UPDATE = "list update"
+const REMOVE_UPDATE = "remove update"
+const GENERATE = "generate standup"
+
 func initialModel() model {
 	return model{
-		choices:  []string{"add update", "list updates", "remove update", "generate standup"},
-		selected: make(map[int]struct{}),
+		choices: []string{ADD_UPDATE, LIST_UPDATE, REMOVE_UPDATE, GENERATE},
+		// -1 is main menu
+		selected: -1,
 		updates:  make(map[int]string),
 	}
 }
@@ -39,6 +45,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			return m, tea.Quit
 
+		case "m":
+			m.cursor = 0
+			m.selected = -1
+
 		// The "up" and "k" keys move the cursor up
 		case "up", "k":
 			if m.cursor > 0 {
@@ -54,12 +64,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// The "enter" key and the spacebar (a literal space) toggle
 		// the selected state for the item that the cursor is pointing at.
 		case "enter", " ":
-			_, ok := m.selected[m.cursor]
-			if ok {
-				delete(m.selected, m.cursor)
-			} else {
-				m.selected[m.cursor] = struct{}{}
-			}
+			m.selected = m.cursor
 		}
 	}
 
@@ -69,25 +74,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	s := "What should we buy at the market?\n\n"
+	s := ""
+	if m.selected == -1 {
+		s += "Choose an option\n"
 
-	// Iterate over our choices
-	for i, choice := range m.choices {
+		// Iterate over our choices
+		for i, choice := range m.choices {
 
-		// Is the cursor pointing at this choice?
-		cursor := " " // no cursor
-		if m.cursor == i {
-			cursor = ">" // cursor!
+			// Is the cursor pointing at this choice?
+			cursor := " " // no cursor
+			if m.cursor == i {
+				cursor = ">" // cursor!
+			}
+
+			// Render the row
+			s += fmt.Sprintf("%s %s\n", cursor, choice)
 		}
+	} else {
+		s += m.choices[m.selected]
 
-		// Is this choice selected?
-		checked := " " // not selected
-		if _, ok := m.selected[i]; ok {
-			checked = "x" // selected!
-		}
-
-		// Render the row
-		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice)
+		s += "\n\nPress m for main menu."
 	}
 
 	// The footer
