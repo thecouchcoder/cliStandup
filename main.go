@@ -76,22 +76,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() string {
 	s := ""
 	if m.selected == -1 {
-		s += "Choose an option\n"
-
-		// Iterate over our choices
-		for i, choice := range m.choices {
-
-			// Is the cursor pointing at this choice?
-			cursor := " " // no cursor
-			if m.cursor == i {
-				cursor = ">" // cursor!
-			}
-
-			// Render the row
-			s += fmt.Sprintf("%s %s\n", cursor, choice)
-		}
+		s += m.mainMenuView()
 	} else {
-		s += m.choices[m.selected]
+		s += m.choices[m.selected] + "\n"
+
+		switch m.choices[m.selected] {
+		case ADD_UPDATE:
+			s += m.addUpdateView()
+		case REMOVE_UPDATE:
+			s += m.notImplementedView()
+		case LIST_UPDATE:
+			s += m.notImplementedView()
+		case GENERATE:
+			s += m.notImplementedView()
+		}
 
 		s += "\n\nPress m for main menu."
 	}
@@ -100,6 +98,31 @@ func (m model) View() string {
 	s += "\nPress q to quit.\n"
 
 	// Send the UI for rendering
+	return s
+}
+
+func (m model) notImplementedView() string {
+	return "\nNot Implemented\n"
+}
+func (m model) addUpdateView() string {
+	return "add update"
+}
+
+func (m model) mainMenuView() string {
+	s := "Choose an option\n"
+
+	// Iterate over our choices
+	for i, choice := range m.choices {
+
+		// Is the cursor pointing at this choice?
+		cursor := " " // no cursor
+		if m.cursor == i {
+			cursor = ">" // cursor!
+		}
+
+		// Render the row
+		s += fmt.Sprintf("%s %s\n", cursor, choice)
+	}
 	return s
 }
 
