@@ -1,6 +1,6 @@
 module github.com/aes421/cliStandup
 
-go 1.22.2
+go 1.22
 
 require github.com/charmbracelet/bubbletea v0.26.1
 

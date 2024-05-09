@@ -10,7 +10,7 @@ import (
 type model struct {
 	choices   []string
 	cursor    int
-	selected  choice
+	state     state
 	updates   []string
 	userInput string
 }
@@ -21,22 +21,22 @@ const REMOVE_UPDATE = "remove update"
 const CLEAR = "clear updates"
 const GENERATE = "generate standup"
 
-type choice int
+type state int
 
 const (
-	mainchoice choice = iota
-	addchoice
-	listchoice
-	removechoice
-	clearchoice
-	generatechoice
+	main_state state = iota
+	add_state
+	list_state
+	remove_state
+	clear_state
+	generate_state
 )
 
 func initialModel() model {
 	return model{
-		choices:  []string{ADD_UPDATE, LIST_UPDATE, REMOVE_UPDATE, CLEAR, GENERATE},
-		selected: mainchoice,
-		updates:  []string{"bob", "said", "it"}, //make([]string, 0),
+		choices: []string{ADD_UPDATE, LIST_UPDATE, REMOVE_UPDATE, CLEAR, GENERATE},
+		state:   main_state,
+		updates: []string{"bob", "said", "it"}, //make([]string, 0),
 	}
 }
 
@@ -46,8 +46,8 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
-	switch m.selected {
-	case mainchoice:
+	switch m.state {
+	case main_state:
 		switch msg := msg.(type) {
 
 		// Is it a key press?
@@ -73,13 +73,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 			// The "enter" key and the spacebar (a literal space) toggle
-			// the selected state for the item that the cursor is pointing at.
+			// the state _state for the item that the cursor is pointing at.
 			case "enter", " ":
-				m.selected = choice(m.cursor + 1)
+				m.state = state(m.cursor + 1)
 				m.cursor = 0
 			}
 		}
-	case addchoice:
+	case add_state:
 		switch msg := msg.(type) {
 
 		// Is it a key press?
@@ -87,12 +87,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch val := msg.String(); val {
 			case "esc":
 				m.cursor = 0
-				m.selected = mainchoice
+				m.state = main_state
 			case "enter":
 				m.updates = append(m.updates, m.userInput)
 				m.userInput = ""
 				m.cursor = 0
-				m.selected = mainchoice
+				m.state = main_state
 			case "backspace":
 				if len(m.userInput) > 0 {
 					m.userInput = m.userInput[:len(m.userInput)-1]
@@ -102,7 +102,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		}
-	case removechoice:
+	case remove_state:
 		switch msg := msg.(type) {
 
 		// Is it a key press?
@@ -110,7 +110,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.String() {
 			case "esc":
 				m.cursor = 0
-				m.selected = mainchoice
+				m.state = main_state
 			case "up", "k":
 				if m.cursor > 0 {
 					m.cursor--
@@ -124,7 +124,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		}
-	case clearchoice:
+	case clear_state:
 		switch msg := msg.(type) {
 
 		// Is it a key press?
@@ -132,14 +132,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.String() {
 			case "esc":
 				m.cursor = 0
-				m.selected = mainchoice
+				m.state = main_state
 
 			// The "enter" key and the spacebar (a literal space) toggle
-			// the selected state for the item that the cursor is pointing at.
+			// the state _state for the item that the cursor is pointing at.
 			case "enter", " ":
 				m.updates = make([]string, 0)
 				m.cursor = 0
-				m.selected = mainchoice
+				m.state = main_state
 			}
 
 		}
@@ -152,7 +152,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.String() {
 			case "esc":
 				m.cursor = 0
-				m.selected = mainchoice
+				m.state = main_state
 			}
 
 		}
@@ -166,22 +166,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	s := ""
-	if m.selected == mainchoice {
+	if m.state == main_state {
 		s += m.mainMenuView()
 		s += "\nPress esc to quit.\n"
 	} else {
-		s += m.choices[m.selected-1] + "\n"
+		s += m.choices[m.state-1] + "\n"
 
-		switch m.selected {
-		case addchoice:
+		switch m.state {
+		case add_state:
 			s += m.addUpdateView()
-		case removechoice:
+		case remove_state:
 			s += m.removeUpdateView()
-		case listchoice:
+		case list_state:
 			s += m.listUpdateView()
-		case clearchoice:
+		case clear_state:
 			s += m.clearUpdatesView()
-		case generatechoice:
+		case generate_state:
 			s += m.notImplementedView()
 		}
 
