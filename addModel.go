@@ -9,13 +9,14 @@ type AddModel struct {
 	textArea textarea.Model
 }
 
-// TODO better colors and fix sizing
-func NewAddModel() AddModel {
+func NewAddModel(width, height int) AddModel {
 	m := AddModel{
 		textArea: textarea.New(),
 	}
 	m.textArea.Placeholder = "Enter your update here"
 	m.textArea.Focus()
+	m.textArea.SetWidth(width)
+	m.textArea.SetHeight(height)
 
 	return m
 }
@@ -35,9 +36,10 @@ func (m AddModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				return models["list"], nil
 			}
-
-		case "ctrl+s":
-			return models["list"], m.SaveUpdateCmd
+		// Can fix this functionality later
+		// case "ctrl+s":
+		// 	log.Printf("Saving update: %v", m.textArea.Value())
+		// 	return models["list"], m.SaveUpdateCmd
 		case "enter":
 			if !m.textArea.Focused() {
 				return models["list"], m.SaveUpdateCmd
@@ -45,7 +47,7 @@ func (m AddModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "w":
 			if !m.textArea.Focused() {
 				m.textArea.Focus()
-				return m, nil
+				return m, textarea.Blink
 			}
 		}
 	}

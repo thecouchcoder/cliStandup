@@ -11,7 +11,7 @@ var models = make(map[string]tea.Model)
 
 func InitModels() {
 	models["list"] = NewModel()
-	models["add"] = NewAddModel()
+	models["add"] = NewAddModel(0, 0)
 }
 func main() {
 	os.Remove("debug.log")
