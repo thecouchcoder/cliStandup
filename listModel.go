@@ -8,7 +8,9 @@ import (
 )
 
 type ListModel struct {
-	updates list.Model
+	updates       list.Model
+	width, height int
+	loaded        bool
 }
 
 func NewModel() ListModel {
@@ -31,12 +33,23 @@ func (m ListModel) Init() tea.Cmd {
 }
 
 func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	log.Printf("Loaded: %v", m.loaded)
+	if !m.loaded {
+		switch msg := msg.(type) {
+		case tea.WindowSizeMsg:
+			m.width, m.height = msg.Width, msg.Height
+			m.updates.SetSize(m.width, m.height)
+			m.loaded = true
+		}
+
+		return m, nil
+	}
+
+	m.updates.SetSize(m.width, m.height)
 	switch msg := msg.(type) {
 	case UpdateItem:
 		log.Printf("Adding update: %v", msg)
 		m.updates.InsertItem(0, msg)
-	case tea.WindowSizeMsg:
-		m.updates.SetSize(msg.Width, msg.Height)
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "esc":
@@ -44,6 +57,7 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "d":
 			m.updates.RemoveItem(m.updates.Index())
 		case "a":
+			models["list"] = m
 			models["add"] = NewAddModel()
 			return models["add"].Update(nil)
 		}
