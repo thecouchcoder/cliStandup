@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -27,7 +25,6 @@ func (m AddModel) Init() tea.Cmd {
 }
 
 func (m AddModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	log.Printf("AddModel: %v", msg)
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -40,10 +37,10 @@ func (m AddModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case "ctrl+s":
-			return models["list"], nil
+			return models["list"], m.SaveUpdateCmd
 		case "enter":
 			if !m.textArea.Focused() {
-				return models["list"], nil
+				return models["list"], m.SaveUpdateCmd
 			}
 		case "w":
 			if !m.textArea.Focused() {
@@ -59,3 +56,7 @@ func (m AddModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m AddModel) View() string { return m.textArea.View() }
+
+func (m AddModel) SaveUpdateCmd() tea.Msg {
+	return UpdateItem{description: m.textArea.Value()}
+}

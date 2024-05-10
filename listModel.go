@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -30,6 +32,9 @@ func (m ListModel) Init() tea.Cmd {
 
 func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case UpdateItem:
+		log.Printf("Adding update: %v", msg)
+		m.updates.InsertItem(0, msg)
 	case tea.WindowSizeMsg:
 		m.updates.SetSize(msg.Width, msg.Height)
 	case tea.KeyMsg:
