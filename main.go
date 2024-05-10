@@ -4,258 +4,79 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type model struct {
-	choices   []string
-	cursor    int
-	state     state
-	updates   []string
-	userInput string
+type UpdateItem struct {
+	title       string
+	description string
 }
 
-const ADD_UPDATE = "add update"
-const LIST_UPDATE = "list update"
-const REMOVE_UPDATE = "remove update"
-const CLEAR = "clear updates"
-const GENERATE = "generate standup"
+func (u UpdateItem) Title() string {
+	return u.title
+}
 
-type state int
+func (u UpdateItem) Description() string {
+	return u.description
+}
 
-const (
-	main_state state = iota
-	add_state
-	list_state
-	remove_state
-	clear_state
-	generate_state
-)
+func (u UpdateItem) FilterValue() string {
+	return u.description
+}
 
-func initialModel() model {
-	return model{
-		choices: []string{ADD_UPDATE, LIST_UPDATE, REMOVE_UPDATE, CLEAR, GENERATE},
-		state:   main_state,
-		updates: []string{"bob", "said", "it"}, //make([]string, 0),
+type Model struct {
+	updates list.Model
+}
+
+func NewModel() Model {
+	sampleUpdate := UpdateItem{title: "Update", description: "This is a sample update"}
+
+	m := Model{
+		updates: list.New(
+			[]list.Item{sampleUpdate, sampleUpdate, sampleUpdate},
+			list.NewDefaultDelegate(),
+			0,
+			0),
 	}
+
+	m.updates.Title = "Sprint Updates"
+	return m
 }
 
-func (m model) Init() tea.Cmd {
+func (m Model) Init() tea.Cmd {
 	return nil
 }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-
-	switch m.state {
-	case main_state:
-		switch msg := msg.(type) {
-
-		// Is it a key press?
-		case tea.KeyMsg:
-
-			// Cool, what was the actual key pressed?
-			switch msg.String() {
-
-			// These keys should exit the program.
-			case "ctrl+c", "esc":
-				return m, tea.Quit
-
-			// The "up" and "k" keys move the cursor up
-			case "up", "k":
-				if m.cursor > 0 {
-					m.cursor--
-				}
-
-			// The "down" and "j" keys move the cursor down
-			case "down", "j":
-				if m.cursor < len(m.choices)-1 {
-					m.cursor++
-				}
-
-			// The "enter" key and the spacebar (a literal space) toggle
-			// the state _state for the item that the cursor is pointing at.
-			case "enter", " ":
-				m.state = state(m.cursor + 1)
-				m.cursor = 0
-			}
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.updates.SetSize(msg.Width, msg.Height)
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c", "esc":
+			return m, tea.Quit
 		}
-	case add_state:
-		switch msg := msg.(type) {
-
-		// Is it a key press?
-		case tea.KeyMsg:
-			switch val := msg.String(); val {
-			case "esc":
-				m.cursor = 0
-				m.state = main_state
-			case "enter":
-				m.updates = append(m.updates, m.userInput)
-				m.userInput = ""
-				m.cursor = 0
-				m.state = main_state
-			case "backspace":
-				if len(m.userInput) > 0 {
-					m.userInput = m.userInput[:len(m.userInput)-1]
-				}
-			default:
-				m.userInput += val
-			}
-
-		}
-	case remove_state:
-		switch msg := msg.(type) {
-
-		// Is it a key press?
-		case tea.KeyMsg:
-			switch msg.String() {
-			case "esc":
-				m.cursor = 0
-				m.state = main_state
-			case "up", "k":
-				if m.cursor > 0 {
-					m.cursor--
-				}
-			case "down", "j":
-				if m.cursor < len(m.updates)-1 {
-					m.cursor++
-				}
-			case "enter", " ":
-				m.updates = append(m.updates[:m.cursor], m.updates[m.cursor+1:]...)
-			}
-
-		}
-	case clear_state:
-		switch msg := msg.(type) {
-
-		// Is it a key press?
-		case tea.KeyMsg:
-			switch msg.String() {
-			case "esc":
-				m.cursor = 0
-				m.state = main_state
-
-			// The "enter" key and the spacebar (a literal space) toggle
-			// the state _state for the item that the cursor is pointing at.
-			case "enter", " ":
-				m.updates = make([]string, 0)
-				m.cursor = 0
-				m.state = main_state
-			}
-
-		}
-
-	default:
-		switch msg := msg.(type) {
-
-		// Is it a key press?
-		case tea.KeyMsg:
-			switch msg.String() {
-			case "esc":
-				m.cursor = 0
-				m.state = main_state
-			}
-
-		}
-
 	}
 
-	// Return the updated model to the Bubble Tea runtime for processing.
-	// Note that we're not returning a command.
-	return m, nil
+	var cmd tea.Cmd
+	m.updates, cmd = m.updates.Update(msg)
+	return m, cmd
 }
 
-func (m model) View() string {
-	s := ""
-	if m.state == main_state {
-		s += m.mainMenuView()
-		s += "\nPress esc to quit.\n"
-	} else {
-		s += m.choices[m.state-1] + "\n"
-
-		switch m.state {
-		case add_state:
-			s += m.addUpdateView()
-		case remove_state:
-			s += m.removeUpdateView()
-		case list_state:
-			s += m.listUpdateView()
-		case clear_state:
-			s += m.clearUpdatesView()
-		case generate_state:
-			s += m.notImplementedView()
-		}
-
-		s += "\n\nPress esc for main menu.\n"
-	}
-
-	// Send the UI for rendering
-	return s
-}
-
-func (m model) notImplementedView() string {
-	return "\nNot Implemented\n"
-}
-func (m model) addUpdateView() string {
-	s := "Type your update. \n"
-	s += m.userInput
-	return s
-}
-
-func (m model) removeUpdateView() string {
-	s := ""
-
-	// Iterate over our choices
-	for i, u := range m.updates {
-
-		// Is the cursor pointing at this choice?
-		cursor := " " // no cursor
-		if m.cursor == i {
-			cursor = ">" // cursor!
-		}
-
-		// Render the row
-		s += fmt.Sprintf("%d: %s %s\n", i, cursor, u)
-	}
-	return s
-}
-
-func (m model) clearUpdatesView() string {
-	s := "Are you sure? (enter)"
-	return s
-}
-
-func (m model) listUpdateView() string {
-	if len(m.updates) == 0 {
-		return "no updates saved yet"
-	}
-	s := ""
-	for i, val := range m.updates {
-		s += fmt.Sprintf("%d: %s\n", i, val)
-	}
-
-	return s
-}
-
-func (m model) mainMenuView() string {
-	s := "Choose an option\n"
-
-	// Iterate over our choices
-	for i, choice := range m.choices {
-
-		// Is the cursor pointing at this choice?
-		cursor := " " // no cursor
-		if m.cursor == i {
-			cursor = ">" // cursor!
-		}
-
-		// Render the row
-		s += fmt.Sprintf("%s %s\n", cursor, choice)
-	}
-	return s
+func (m Model) View() string {
+	return m.updates.View()
 }
 
 func main() {
-	p := tea.NewProgram(initialModel())
+	os.Remove("debug.log")
+	f, err := tea.LogToFile("debug.log", "debug")
+	if err != nil {
+		fmt.Println("fatal:", err)
+		os.Exit(1)
+	}
+	defer f.Close()
+	p := tea.NewProgram(NewModel())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
 		os.Exit(1)
