@@ -23,6 +23,16 @@ var listModelKeyMap = listModelKeys{
 	),
 }
 
+func getListModelKeys() func() []key.Binding {
+	return func() []key.Binding {
+		return []key.Binding{
+			listModelKeyMap.Add,
+			listModelKeyMap.Delete,
+			listModelKeyMap.Generate,
+		}
+	}
+}
+
 type addModelKeys struct {
 	EscWriteMode key.Binding
 	EscViewMode  key.Binding

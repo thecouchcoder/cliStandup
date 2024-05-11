@@ -11,7 +11,6 @@ import (
 
 	"github.com/aes421/cliStandup/db/dbmodel"
 
-	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -36,20 +35,8 @@ func NewModel(db *sql.DB) ListModel {
 	}
 
 	m.updates.Title = "Sprint Updates"
-	m.updates.AdditionalShortHelpKeys = func() []key.Binding {
-		return []key.Binding{
-			listModelKeyMap.Add,
-			listModelKeyMap.Delete,
-			listModelKeyMap.Generate,
-		}
-	}
-	m.updates.AdditionalFullHelpKeys = func() []key.Binding {
-		return []key.Binding{
-			listModelKeyMap.Add,
-			listModelKeyMap.Delete,
-			listModelKeyMap.Generate,
-		}
-	}
+	m.updates.AdditionalShortHelpKeys = getListModelKeys()
+	m.updates.AdditionalFullHelpKeys = getListModelKeys()
 	return m
 }
 
