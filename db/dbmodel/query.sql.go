@@ -19,21 +19,29 @@ func (q *Queries) ArchiveUpdate(ctx context.Context, id int64) error {
 	return err
 }
 
-const createUpdate = `-- name: CreateUpdate :exec
-INSERT INTO updates (description) VALUES (?)
+const createUpdate = `-- name: CreateUpdate :one
+INSERT INTO updates (description) VALUES (?) RETURNING id, description, archived, created_at, updated_at
 `
 
-func (q *Queries) CreateUpdate(ctx context.Context, description string) error {
-	_, err := q.db.ExecContext(ctx, createUpdate, description)
-	return err
+func (q *Queries) CreateUpdate(ctx context.Context, description string) (Update, error) {
+	row := q.db.QueryRowContext(ctx, createUpdate, description)
+	var i Update
+	err := row.Scan(
+		&i.ID,
+		&i.Description,
+		&i.Archived,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
-const getUpdates = `-- name: GetUpdates :many
-SELECT id, description, archived, created_at, updated_at FROM updates ORDER BY created_at DESC
+const getActiveUpdates = `-- name: GetActiveUpdates :many
+SELECT id, description, archived, created_at, updated_at FROM updates WHERE archived = FALSE ORDER BY created_at DESC
 `
 
-func (q *Queries) GetUpdates(ctx context.Context) ([]Update, error) {
-	rows, err := q.db.QueryContext(ctx, getUpdates)
+func (q *Queries) GetActiveUpdates(ctx context.Context) ([]Update, error) {
+	rows, err := q.db.QueryContext(ctx, getActiveUpdates)
 	if err != nil {
 		return nil, err
 	}

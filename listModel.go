@@ -79,14 +79,16 @@ func (m ListModel) Init() tea.Cmd {
 }
 
 func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if _, ok := msg.(FatalError); ok {
+		log.Fatal(msg)
+		return m, tea.Quit
+	}
+
 	if !m.loaded {
 		switch msg := msg.(type) {
 		case tea.WindowSizeMsg:
 			m.width, m.height = msg.Width, msg.Height
 			m.updates.SetSize(m.width, m.height)
-		case fatalError:
-			log.Fatal(msg)
-			return m, tea.Quit
 		case InitiallyLoadedUpdates:
 			log.Printf("received %d items\n", len(msg))
 			items := make([]list.Item, len(msg))
@@ -110,7 +112,7 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "esc":
 			return m, tea.Quit
 		case keyMap.delete.Help().Key:
-			m.updates.RemoveItem(m.updates.Index())
+			return m, m.DeleteUpdateCmd()
 		case keyMap.add.Help().Key:
 			models["list"] = m
 			models["add"] = NewAddModel(m.width, m.height)
@@ -140,15 +142,15 @@ func (m ListModel) LoadListCmd() tea.Msg {
 	defer cancel()
 
 	// query for updates
-	updates, err := dbmodel.New(m.db).GetUpdates(ctx)
+	updates, err := dbmodel.New(m.db).GetActiveUpdates(ctx)
 	if err != nil {
-		return fatalError(err.Error())
+		return FatalError(err.Error())
 	}
 
 	return NewUpdateItems(updates)
 }
 
-type fatalError string
+type FatalError string
 
 func (m ListModel) SaveUpdateCmd(description string) tea.Cmd {
 	return func() tea.Msg {
@@ -156,13 +158,31 @@ func (m ListModel) SaveUpdateCmd(description string) tea.Cmd {
 		ctx := context.Background()
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
-		err := dbmodel.New(m.db).CreateUpdate(ctx, description)
+		r, err := dbmodel.New(m.db).CreateUpdate(ctx, description)
 		if err != nil {
-			return fatalError(err.Error())
+			return FatalError(err.Error())
 		}
 
 		log.Print("update saved.")
-		m.updates.InsertItem(0, NewUpdate{description: description})
+		m.updates.InsertItem(0, NewUpdate(r.ID, description))
+		m.updates.Select(0)
+		return UpdatedModel(m)
+	}
+}
+
+func (m ListModel) DeleteUpdateCmd() tea.Cmd {
+	return func() tea.Msg {
+		log.Printf("Deleting update: %v", m.updates.Index())
+		ctx := context.Background()
+		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		mdl := m.updates.SelectedItem().(Update)
+		err := dbmodel.New(m.db).ArchiveUpdate(ctx, mdl.id)
+		if err != nil {
+			return FatalError(err.Error())
+		}
+
+		m.updates.RemoveItem(m.updates.Index())
 		return UpdatedModel(m)
 	}
 }
