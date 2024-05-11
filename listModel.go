@@ -16,27 +16,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type keymap struct {
-	add      key.Binding
-	delete   key.Binding
-	generate key.Binding
-}
-
-var keyMap = keymap{
-	add: key.NewBinding(
-		key.WithKeys("a"),
-		key.WithHelp("a", "add"),
-	),
-	delete: key.NewBinding(
-		key.WithKeys("d"),
-		key.WithHelp("d", "delete"),
-	),
-	generate: key.NewBinding(
-		key.WithKeys("g"),
-		key.WithHelp("g", "generate"),
-	),
-}
-
 type ListModel struct {
 	updates       list.Model
 	width, height int
@@ -59,16 +38,16 @@ func NewModel(db *sql.DB) ListModel {
 	m.updates.Title = "Sprint Updates"
 	m.updates.AdditionalShortHelpKeys = func() []key.Binding {
 		return []key.Binding{
-			keyMap.add,
-			keyMap.delete,
-			keyMap.generate,
+			listModelKeyMap.Add,
+			listModelKeyMap.Delete,
+			listModelKeyMap.Generate,
 		}
 	}
 	m.updates.AdditionalFullHelpKeys = func() []key.Binding {
 		return []key.Binding{
-			keyMap.add,
-			keyMap.delete,
-			keyMap.generate,
+			listModelKeyMap.Add,
+			listModelKeyMap.Delete,
+			listModelKeyMap.Generate,
 		}
 	}
 	return m
@@ -111,9 +90,9 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "esc":
 			return m, tea.Quit
-		case keyMap.delete.Help().Key:
+		case listModelKeyMap.Delete.Keys()[0]:
 			return m, m.DeleteUpdateCmd()
-		case keyMap.add.Help().Key:
+		case listModelKeyMap.Add.Keys()[0]:
 			models["list"] = m
 			models["add"] = NewAddModel(m.width, m.height)
 			return models["add"].Update(nil)
