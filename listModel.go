@@ -1,6 +1,16 @@
 package main
 
 import (
+	"context"
+	"database/sql"
+	_ "embed"
+	"log"
+	"time"
+
+	_ "github.com/mattn/go-sqlite3"
+
+	"github.com/aes421/cliStandup/db/dbmodel"
+
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -34,14 +44,14 @@ type ListModel struct {
 }
 
 func NewModel() ListModel {
-	sampleUpdate := UpdateItem{description: "This is a sample update"}
 
 	m := ListModel{
 		updates: list.New(
-			[]list.Item{sampleUpdate, sampleUpdate, sampleUpdate},
+			[]list.Item{},
 			list.NewDefaultDelegate(),
 			0,
 			0),
+		loaded: false,
 	}
 
 	m.updates.Title = "Sprint Updates"
@@ -63,7 +73,7 @@ func NewModel() ListModel {
 }
 
 func (m ListModel) Init() tea.Cmd {
-	return nil
+	return LoadListCmd
 }
 
 func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -72,6 +82,16 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.WindowSizeMsg:
 			m.width, m.height = msg.Width, msg.Height
 			m.updates.SetSize(m.width, m.height)
+		case fatalError:
+			log.Fatal(msg)
+			return m, tea.Quit
+		case UpdateItems:
+			log.Printf("Received %d items\n", len(msg))
+			items := make([]list.Item, len(msg))
+			for i, u := range msg {
+				items[i] = u
+			}
+			m.updates.SetItems(items)
 			m.loaded = true
 		}
 
@@ -101,5 +121,42 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m ListModel) View() string {
+	log.Printf("loaded: %v\n", m.loaded)
+	if !m.loaded {
+		return "Loading..."
+	}
 	return m.updates.View()
 }
+
+//go:embed db/schema.sql
+var ddl string
+
+func LoadListCmd() tea.Msg {
+	log.Print("loading list...")
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	// open and create tables
+	db, err := sql.Open("sqlite3", "cliStandup.db")
+	if err != nil {
+		return fatalError(err.Error())
+	}
+	defer db.Close()
+
+	// log.Printf("ddl: %s\n", ddl)
+	// if _, err := db.ExecContext(ctx, ddl); err != nil {
+	// 	return fatalError(err.Error())
+	// }
+
+	// query for updates
+
+	updates, err := dbmodel.New(db).GetUpdates(ctx)
+	if err != nil {
+		return fatalError(err.Error())
+	}
+
+	return NewUpdateItems(updates)
+}
+
+type fatalError string
