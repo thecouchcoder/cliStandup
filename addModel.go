@@ -83,7 +83,8 @@ func (m AddModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// 	return models["list"], m.SaveUpdateCmd
 		case "enter":
 			if !m.textArea.Focused() {
-				return models["list"], m.SaveUpdateCmd
+				listModel := models["list"].(ListModel)
+				return models["list"], listModel.SaveUpdateCmd(m.textArea.Value())
 			}
 		case "w":
 			if !m.textArea.Focused() {
@@ -104,8 +105,4 @@ func (m AddModel) View() string {
 
 	// TODO we could dynamically determine height incase of window resize
 	return lipgloss.JoinVertical(lipgloss.Left, textAreaView, helpView)
-}
-
-func (m AddModel) SaveUpdateCmd() tea.Msg {
-	return NewUpdate{description: m.textArea.Value()}
 }
