@@ -41,9 +41,10 @@ type ListModel struct {
 	updates       list.Model
 	width, height int
 	loaded        bool
+	db            *sql.DB
 }
 
-func NewModel() ListModel {
+func NewModel(db *sql.DB) ListModel {
 
 	m := ListModel{
 		updates: list.New(
@@ -52,6 +53,7 @@ func NewModel() ListModel {
 			0,
 			0),
 		loaded: false,
+		db:     db,
 	}
 
 	m.updates.Title = "Sprint Updates"
@@ -73,7 +75,7 @@ func NewModel() ListModel {
 }
 
 func (m ListModel) Init() tea.Cmd {
-	return LoadListCmd
+	return m.LoadListCmd
 }
 
 func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -86,7 +88,7 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			log.Fatal(msg)
 			return m, tea.Quit
 		case UpdateItems:
-			log.Printf("Received %d items\n", len(msg))
+			log.Printf("leceived %d items\n", len(msg))
 			items := make([]list.Item, len(msg))
 			for i, u := range msg {
 				items[i] = u
@@ -121,7 +123,6 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m ListModel) View() string {
-	log.Printf("loaded: %v\n", m.loaded)
 	if !m.loaded {
 		return "Loading..."
 	}
@@ -131,27 +132,14 @@ func (m ListModel) View() string {
 //go:embed db/schema.sql
 var ddl string
 
-func LoadListCmd() tea.Msg {
+func (m ListModel) LoadListCmd() tea.Msg {
 	log.Print("loading list...")
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	// open and create tables
-	db, err := sql.Open("sqlite3", "cliStandup.db")
-	if err != nil {
-		return fatalError(err.Error())
-	}
-	defer db.Close()
-
-	// log.Printf("ddl: %s\n", ddl)
-	// if _, err := db.ExecContext(ctx, ddl); err != nil {
-	// 	return fatalError(err.Error())
-	// }
-
 	// query for updates
-
-	updates, err := dbmodel.New(db).GetUpdates(ctx)
+	updates, err := dbmodel.New(m.db).GetUpdates(ctx)
 	if err != nil {
 		return fatalError(err.Error())
 	}
