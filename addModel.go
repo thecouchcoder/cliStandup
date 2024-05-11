@@ -107,5 +107,5 @@ func (m AddModel) View() string {
 }
 
 func (m AddModel) SaveUpdateCmd() tea.Msg {
-	return UpdateItem{description: m.textArea.Value()}
+	return NewUpdate{description: m.textArea.Value()}
 }

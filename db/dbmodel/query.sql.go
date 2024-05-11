@@ -19,6 +19,15 @@ func (q *Queries) ArchiveUpdate(ctx context.Context, id int64) error {
 	return err
 }
 
+const createUpdate = `-- name: CreateUpdate :exec
+INSERT INTO updates (description) VALUES (?)
+`
+
+func (q *Queries) CreateUpdate(ctx context.Context, description string) error {
+	_, err := q.db.ExecContext(ctx, createUpdate, description)
+	return err
+}
+
 const getUpdates = `-- name: GetUpdates :many
 SELECT id, description, archived, created_at, updated_at FROM updates ORDER BY created_at DESC
 `

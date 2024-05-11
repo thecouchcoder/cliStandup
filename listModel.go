@@ -87,7 +87,7 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case fatalError:
 			log.Fatal(msg)
 			return m, tea.Quit
-		case UpdateItems:
+		case InitiallyLoadedUpdates:
 			log.Printf("leceived %d items\n", len(msg))
 			items := make([]list.Item, len(msg))
 			for i, u := range msg {
@@ -102,8 +102,11 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	m.updates.SetSize(m.width, m.height)
 	switch msg := msg.(type) {
-	case UpdateItem:
-		m.updates.InsertItem(0, msg)
+	case NewUpdate:
+		return m, m.SaveUpdateCmd(msg)
+	case ListModel:
+		m = msg
+		return m, nil
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "esc":
@@ -148,3 +151,20 @@ func (m ListModel) LoadListCmd() tea.Msg {
 }
 
 type fatalError string
+
+func (m ListModel) SaveUpdateCmd(msg NewUpdate) tea.Cmd {
+	return func() tea.Msg {
+		log.Printf("Saving update: %v", msg.Description())
+		ctx := context.Background()
+		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		err := dbmodel.New(m.db).CreateUpdate(ctx, msg.Description())
+		if err != nil {
+			return fatalError(err.Error())
+		}
+
+		log.Print("update saved.")
+		m.updates.InsertItem(0, msg)
+		return m
+	}
+}
