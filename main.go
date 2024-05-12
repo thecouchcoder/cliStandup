@@ -26,7 +26,7 @@ func Init() (*sql.DB, map[string]tea.Model, error) {
 		os.Create(path)
 	}
 	// open and create tables
-	db, err := sql.Open("sqlite3", "cliStandup.db")
+	db, err := sql.Open("sqlite", "cliStandup.db")
 	if err != nil {
 		return nil, nil, err
 	}
