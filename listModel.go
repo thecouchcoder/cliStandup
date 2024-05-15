@@ -10,6 +10,7 @@ import (
 	_ "modernc.org/sqlite"
 
 	"github.com/aes421/cliStandup/db/dbmodel"
+	"github.com/aes421/cliStandup/llm"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -20,6 +21,7 @@ type ListModel struct {
 	width, height int
 	loaded        bool
 	db            *sql.DB
+	llm           llm.LLM
 }
 
 func NewModel(db *sql.DB) ListModel {
@@ -32,6 +34,7 @@ func NewModel(db *sql.DB) ListModel {
 			0),
 		loaded: false,
 		db:     db,
+		llm:    llm.NewChatGPT(),
 	}
 
 	m.updates.Title = "Sprint Updates"
@@ -83,6 +86,8 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			models["list"] = m
 			models["add"] = NewAddModel(m.width, m.height)
 			return models["add"].Update(nil)
+		case listModelKeyMap.Generate.Keys()[0]:
+			return m, m.GenerateReportCmd()
 		}
 	}
 
@@ -153,4 +158,21 @@ func (m ListModel) DeleteUpdateCmd() tea.Cmd {
 	}
 }
 
+func (m ListModel) GenerateReportCmd() tea.Cmd {
+	return func() tea.Msg {
+		log.Print("Generating report...")
+		ctx := context.Background()
+		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		content, err := m.llm.Generate(ctx)
+		if err != nil {
+			return FatalError(err.Error())
+		}
+
+		return GeneratedReport(content)
+	}
+}
+
 type UpdatedModel ListModel
+
+type GeneratedReport string
