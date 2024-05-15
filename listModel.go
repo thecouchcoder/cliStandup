@@ -24,7 +24,7 @@ type ListModel struct {
 	llm           llm.LLM
 }
 
-func NewModel(db *sql.DB) ListModel {
+func NewModel(db *sql.DB, llm llm.LLM) ListModel {
 
 	m := ListModel{
 		updates: list.New(
@@ -34,7 +34,7 @@ func NewModel(db *sql.DB) ListModel {
 			0),
 		loaded: false,
 		db:     db,
-		llm:    llm.NewChatGPT(),
+		llm:    llm,
 	}
 
 	m.updates.Title = "Sprint Updates"
@@ -73,6 +73,8 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	m.updates.SetSize(m.width, m.height)
 	switch msg := msg.(type) {
+	case GeneratedReport:
+		// text area model
 	case UpdatedModel:
 		m = ListModel(msg)
 		return m, nil
