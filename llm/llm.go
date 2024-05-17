@@ -39,7 +39,7 @@ type chatgpt struct {
 	maxTokens   int
 }
 
-func NewChatGPT(db *sql.DB, endpoint string, api_key string, llmModel string, temperature float32, maxTokens int) LLM {
+func NewChatGPT(db *sql.DB, endpoint string, api_key string, llmModel string, temperature float32, maxTokens int) chatgpt {
 	return chatgpt{
 		db:          db,
 		endpoint:    endpoint,

@@ -80,7 +80,7 @@ func Init() (*sql.DB, map[string]tea.Model, error) {
 	initModels := make(map[string]tea.Model)
 	initModels["list"] = NewListModel(db, chatgpt)
 	initModels["add"] = NewAddModel(0, 0)
-	initModels["output"] = NewOutputModel(0, 0, "")
+	initModels["output"] = NewOutputModel(0, 0)
 
 	return db, initModels, nil
 }

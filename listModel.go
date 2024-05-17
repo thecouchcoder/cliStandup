@@ -22,7 +22,6 @@ type ListModel struct {
 	loaded        bool
 	db            *sql.DB
 	llm           llm.LLM
-	generating    bool
 }
 
 func NewListModel(db *sql.DB, llm llm.LLM) ListModel {
@@ -33,10 +32,9 @@ func NewListModel(db *sql.DB, llm llm.LLM) ListModel {
 			list.NewDefaultDelegate(),
 			0,
 			0),
-		loaded:     false,
-		db:         db,
-		llm:        llm,
-		generating: false,
+		loaded: false,
+		db:     db,
+		llm:    llm,
 	}
 
 	m.updates.Title = "Sprint Updates"
@@ -75,11 +73,6 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	m.updates.SetSize(m.width, m.height)
 	switch msg := msg.(type) {
-	case GeneratedReport:
-		m.generating = false
-		models["output"] = NewOutputModel(m.width, m.height, string(msg))
-		models["list"] = m
-		return models["output"], nil
 	case UpdatedModel:
 		m = ListModel(msg)
 		return m, nil
@@ -94,13 +87,10 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			models["add"] = NewAddModel(m.width, m.height)
 			return models["add"].Update(nil)
 		case listModelkeyMap.Generate.Keys()[0]:
-			m.generating = true
-			return m, m.GenerateReportCmd()
+			models["list"] = m
+			models["output"] = NewOutputModel(m.width, m.height)
+			return models["output"], tea.Batch(tickCmd(), m.GenerateReportCmd())
 		}
-	}
-
-	if m.generating {
-		// loading bar
 	}
 
 	var cmd tea.Cmd
@@ -174,6 +164,7 @@ func (m ListModel) GenerateReportCmd() tea.Cmd {
 	return func() tea.Msg {
 		log.Print("Generating report...")
 		if GetConfig().ExternalCallsEnabled == false {
+			time.Sleep(5 * time.Second)
 			return GeneratedReport("external calls are disabled")
 		}
 
