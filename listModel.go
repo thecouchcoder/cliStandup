@@ -88,8 +88,9 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return models["add"].Update(nil)
 		case listModelkeyMap.Generate.Keys()[0]:
 			models["list"] = m
-			models["output"] = NewOutputModel(m.width, m.height)
-			return models["output"], tea.Batch(tickCmd(), m.GenerateReportCmd())
+			model := NewOutputModel(m.width, m.height)
+			models["output"] = model
+			return models["output"], tea.Batch(model.(outputModel).spinner.Tick, m.GenerateReportCmd())
 		}
 	}
 

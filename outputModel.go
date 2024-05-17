@@ -3,16 +3,13 @@ package main
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/charmbracelet/bubbles/help"
-	"github.com/charmbracelet/bubbles/progress"
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
-
-const padding = 2
 
 var titleStyle = func() lipgloss.Style {
 	b := lipgloss.RoundedBorder()
@@ -21,35 +18,31 @@ var titleStyle = func() lipgloss.Style {
 }()
 
 type outputModel struct {
-	width        int
-	height       int
-	content      string
-	generating   bool
-	viewport     viewport.Model
-	help         help.Model
-	progress     progress.Model
-	incrementing bool
+	width      int
+	height     int
+	content    string
+	generating bool
+	viewport   viewport.Model
+	help       help.Model
+	spinner    spinner.Model
 }
 
 func NewOutputModel(width int, height int) tea.Model {
 
 	viewport := viewport.New(width, height-1)
 	m := outputModel{
-		width:        width,
-		height:       height,
-		generating:   true,
-		viewport:     viewport,
-		help:         help.New(),
-		progress:     progress.New(progress.WithDefaultGradient()),
-		incrementing: true,
+		width:      width,
+		height:     height,
+		generating: true,
+		viewport:   viewport,
+		help:       help.New(),
+		spinner:    spinner.New(),
 	}
+	m.spinner.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("69"))
+	m.spinner.Spinner = spinner.Dot
 	m.SetViewport()
-	m.progress.Width = m.width - padding*2 - 4
-	m.progress.ShowPercentage = false
 	return m
 }
-
-type tickMsg time.Time
 
 func (m outputModel) Init() tea.Cmd {
 	return nil
@@ -64,7 +57,6 @@ func (m outputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
-		m.progress.Width = msg.Width - padding*2 - 4
 		m.SetViewport()
 
 	case GeneratedReport:
@@ -73,27 +65,14 @@ func (m outputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.generating = false
 		return m, nil
 
-	case tickMsg:
-		if m.progress.Percent() == 1.0 {
-			m.incrementing = false
-		}
-		if m.progress.Percent() == 0.0 {
-			m.incrementing = true
-		}
-
+	case spinner.TickMsg:
 		var cmd tea.Cmd
-		switch {
-		case m.incrementing:
-			cmd = m.progress.IncrPercent(1)
-		case !m.incrementing:
-			cmd = m.progress.DecrPercent(1)
-		}
-		return m, tea.Batch(cmd, tickCmd())
-
-	case progress.FrameMsg:
-		progressModel, cmd := m.progress.Update(msg)
-		m.progress = progressModel.(progress.Model)
+		m.spinner, cmd = m.spinner.Update(msg)
 		return m, cmd
+	}
+
+	if m.generating {
+		return m, nil
 	}
 
 	var cmd tea.Cmd
@@ -103,10 +82,12 @@ func (m outputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m outputModel) View() string {
 	if m.generating {
-		pad := strings.Repeat(" ", padding)
-		return "\n" +
-			pad + m.progress.View() + "\n\n" +
-			pad + m.help.View(outputModelkeyMap)
+		return lipgloss.JoinVertical(
+			lipgloss.Left,
+			m.headerView(),
+			m.spinner.View(),
+			m.help.View(outputModelkeyMap),
+		)
 	}
 	s := fmt.Sprintf("%s\n%s\n%s\n", m.headerView(), m.viewport.View(), m.help.View(outputModelkeyMap))
 	return s
@@ -133,10 +114,4 @@ func max(a, b int) int {
 		return a
 	}
 	return b
-}
-
-func tickCmd() tea.Cmd {
-	return tea.Tick(time.Millisecond*500, func(t time.Time) tea.Msg {
-		return tickMsg(t)
-	})
 }
