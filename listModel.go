@@ -22,9 +22,10 @@ type ListModel struct {
 	loaded        bool
 	db            *sql.DB
 	llm           llm.LLM
+	generating    bool
 }
 
-func NewModel(db *sql.DB, llm llm.LLM) ListModel {
+func NewListModel(db *sql.DB, llm llm.LLM) ListModel {
 
 	m := ListModel{
 		updates: list.New(
@@ -32,9 +33,10 @@ func NewModel(db *sql.DB, llm llm.LLM) ListModel {
 			list.NewDefaultDelegate(),
 			0,
 			0),
-		loaded: false,
-		db:     db,
-		llm:    llm,
+		loaded:     false,
+		db:         db,
+		llm:        llm,
+		generating: false,
 	}
 
 	m.updates.Title = "Sprint Updates"
@@ -74,7 +76,10 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.updates.SetSize(m.width, m.height)
 	switch msg := msg.(type) {
 	case GeneratedReport:
-		// text area model
+		m.generating = false
+		models["output"] = NewOutputModel(m.width, m.height, string(msg))
+		models["list"] = m
+		return models["output"], nil
 	case UpdatedModel:
 		m = ListModel(msg)
 		return m, nil
@@ -82,15 +87,20 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c", "esc":
 			return m, tea.Quit
-		case listModelKeyMap.Delete.Keys()[0]:
+		case listModelkeyMap.Delete.Keys()[0]:
 			return m, m.DeleteUpdateCmd()
-		case listModelKeyMap.Add.Keys()[0]:
+		case listModelkeyMap.Add.Keys()[0]:
 			models["list"] = m
 			models["add"] = NewAddModel(m.width, m.height)
 			return models["add"].Update(nil)
-		case listModelKeyMap.Generate.Keys()[0]:
+		case listModelkeyMap.Generate.Keys()[0]:
+			m.generating = true
 			return m, m.GenerateReportCmd()
 		}
+	}
+
+	if m.generating {
+		// loading bar
 	}
 
 	var cmd tea.Cmd
@@ -163,6 +173,10 @@ func (m ListModel) DeleteUpdateCmd() tea.Cmd {
 func (m ListModel) GenerateReportCmd() tea.Cmd {
 	return func() tea.Msg {
 		log.Print("Generating report...")
+		if GetConfig().ExternalCallsEnabled == false {
+			return GeneratedReport("external calls are disabled")
+		}
+
 		ctx := context.Background()
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()

@@ -11,14 +11,14 @@ import (
 type AddModel struct {
 	textArea textarea.Model
 	help     help.Model
-	KeyMap   addModelKeys
+	keyMap   addModelKeys
 }
 
 func (m AddModel) ShortHelp() []key.Binding {
 	if m.textArea.Focused() {
-		return []key.Binding{m.KeyMap.EscWriteMode}
+		return []key.Binding{m.keyMap.EscWriteMode}
 	}
-	return []key.Binding{m.KeyMap.EscViewMode, m.KeyMap.Write, m.KeyMap.Save}
+	return []key.Binding{m.keyMap.EscViewMode, m.keyMap.Write, m.keyMap.Save}
 }
 
 // Noop to satisfy the interface
@@ -28,7 +28,7 @@ func NewAddModel(width, height int) AddModel {
 	m := AddModel{
 		textArea: textarea.New(),
 		help:     help.New(),
-		KeyMap:   addModelKeyMap,
+		keyMap:   addModelkeyMap,
 	}
 	m.textArea.Placeholder = "Enter your update here"
 	m.textArea.Focus()

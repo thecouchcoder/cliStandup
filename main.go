@@ -15,6 +15,7 @@ import (
 )
 
 var models = make(map[string]tea.Model)
+var config Config
 
 type Config struct {
 	ChatGPT struct {
@@ -24,6 +25,11 @@ type Config struct {
 		Temp      float32 `json:"temperature"`
 		MaxTokens int     `json:"max_tokens"`
 	}
+	ExternalCallsEnabled bool `json:"externalCallsEnabled"`
+}
+
+func GetConfig() Config {
+	return config
 }
 
 func Init() (*sql.DB, map[string]tea.Model, error) {
@@ -56,7 +62,6 @@ func Init() (*sql.DB, map[string]tea.Model, error) {
 	defer configFile.Close()
 	jsonParser := json.NewDecoder(configFile)
 
-	var config Config
 	if err := jsonParser.Decode(&config); err != nil {
 		log.Fatal(err)
 		return nil, nil, err
@@ -73,8 +78,9 @@ func Init() (*sql.DB, map[string]tea.Model, error) {
 
 	log.Print("initializing models...")
 	initModels := make(map[string]tea.Model)
-	initModels["list"] = NewModel(db, chatgpt)
+	initModels["list"] = NewListModel(db, chatgpt)
 	initModels["add"] = NewAddModel(0, 0)
+	initModels["output"] = NewOutputModel(0, 0, "")
 
 	return db, initModels, nil
 }

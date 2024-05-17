@@ -8,7 +8,18 @@ type listModelKeys struct {
 	Generate key.Binding
 }
 
-var listModelKeyMap = listModelKeys{
+type addModelKeys struct {
+	EscWriteMode key.Binding
+	EscViewMode  key.Binding
+	Write        key.Binding
+	Save         key.Binding
+}
+
+type outputModelKeys struct {
+	Esc key.Binding
+}
+
+var listModelkeyMap = listModelKeys{
 	Add: key.NewBinding(
 		key.WithKeys("a"),
 		key.WithHelp("a", "add"),
@@ -26,21 +37,14 @@ var listModelKeyMap = listModelKeys{
 func getListModelKeys() func() []key.Binding {
 	return func() []key.Binding {
 		return []key.Binding{
-			listModelKeyMap.Add,
-			listModelKeyMap.Delete,
-			listModelKeyMap.Generate,
+			listModelkeyMap.Add,
+			listModelkeyMap.Delete,
+			listModelkeyMap.Generate,
 		}
 	}
 }
 
-type addModelKeys struct {
-	EscWriteMode key.Binding
-	EscViewMode  key.Binding
-	Write        key.Binding
-	Save         key.Binding
-}
-
-var addModelKeyMap = addModelKeys{
+var addModelkeyMap = addModelKeys{
 	EscWriteMode: key.NewBinding(
 		key.WithKeys("esc"),
 		key.WithHelp("esc", "view")),
@@ -55,4 +59,19 @@ var addModelKeyMap = addModelKeys{
 		key.WithKeys("enter"),
 		key.WithHelp("enter", "save"),
 	),
+}
+
+var outputModelkeyMap = outputModelKeys{
+	Esc: key.NewBinding(
+		key.WithKeys("esc"),
+		key.WithHelp("esc", "back"),
+	),
+}
+
+func (m outputModelKeys) ShortHelp() []key.Binding {
+	return []key.Binding{outputModelkeyMap.Esc}
+}
+
+func (m outputModelKeys) FullHelp() [][]key.Binding {
+	return nil
 }
