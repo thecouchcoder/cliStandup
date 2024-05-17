@@ -34,6 +34,7 @@ func NewAddModel(width, height int) AddModel {
 	m.textArea.Focus()
 	m.textArea.SetWidth(width)
 	m.textArea.SetHeight(height - 1)
+	m.textArea.CharLimit = 0 // unlimited
 	m.help.Width = width
 	m.help.ShowAll = false
 
