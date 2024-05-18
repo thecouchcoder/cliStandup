@@ -55,16 +55,16 @@ func (m outputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		state.WindowSize = msg
 		m.SetViewport()
 
+	case spinner.TickMsg:
+		var cmd tea.Cmd
+		m.spinner, cmd = m.spinner.Update(msg)
+		return m, cmd
+
 	case GeneratedReport:
 		m.content = string(msg)
 		m.SetViewport()
 		m.generating = false
 		return m, nil
-
-	case spinner.TickMsg:
-		var cmd tea.Cmd
-		m.spinner, cmd = m.spinner.Update(msg)
-		return m, cmd
 	}
 
 	if m.generating {

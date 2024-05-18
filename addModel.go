@@ -35,8 +35,8 @@ func NewAddModel() AddModel {
 	m.textArea.Focus()
 	m.textArea.SetWidth(state.WindowSize.Width)
 	m.textArea.SetHeight(state.WindowSize.Height - 1)
-	m.textArea.CharLimit = 0 // unlimited
 	m.help.Width = state.WindowSize.Width
+	m.textArea.CharLimit = 0 // unlimited
 	m.help.ShowAll = false
 
 	return m
@@ -71,6 +71,10 @@ func (m AddModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, textarea.Blink
 			}
 		}
+	case tea.WindowSizeMsg:
+		m.textArea.SetWidth(state.WindowSize.Width)
+		m.textArea.SetHeight(state.WindowSize.Height - 1)
+		m.help.Width = state.WindowSize.Width
 	}
 
 	var cmd tea.Cmd
@@ -82,6 +86,5 @@ func (m AddModel) View() string {
 	helpView := m.help.View(m)
 	textAreaView := m.textArea.View()
 
-	// TODO we could dynamically determine height incase of window resize
 	return lipgloss.JoinVertical(lipgloss.Left, textAreaView, helpView)
 }

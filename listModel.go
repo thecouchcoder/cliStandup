@@ -17,19 +17,8 @@ type ListModel struct {
 }
 
 func InitListModel() ListModel {
-	m := ListModel{
-		updateList: list.New(
-			[]list.Item{},
-			list.NewDefaultDelegate(),
-			0,
-			0),
-		loaded: false,
-	}
-
-	m.updateList.Title = "Sprint Updates"
-	m.updateList.AdditionalShortHelpKeys = getListModelKeys()
-	m.updateList.AdditionalFullHelpKeys = getListModelKeys()
-	m.updateList.SetItems(UpdatesToListItems(state.Updates))
+	m := NewListModel()
+	m.loaded = false
 	return m
 }
 
@@ -47,6 +36,7 @@ func NewListModel() ListModel {
 	m.updateList.AdditionalShortHelpKeys = getListModelKeys()
 	m.updateList.AdditionalFullHelpKeys = getListModelKeys()
 	m.updateList.SetItems(UpdatesToListItems(state.Updates))
+	m.updateList.SetSize(state.WindowSize.Width, state.WindowSize.Height)
 	return m
 }
 
@@ -60,30 +50,10 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	}
 
-	if !m.loaded {
-		switch msg := msg.(type) {
-		case tea.WindowSizeMsg:
-			state.WindowSize = msg
-			m.updateList.SetSize(state.WindowSize.Width, state.WindowSize.Height)
-
-		// TODO this is duplicated
-		case LoadedUpdates:
-			log.Printf("received %d items\n", len(msg))
-			m.updateList.SetItems(UpdatesToListItems(state.Updates))
-			m.loaded = true
-			return m, nil
-		}
-
-		return m, nil
-	}
-
-	m.updateList.SetSize(state.WindowSize.Width, state.WindowSize.Height)
 	switch msg := msg.(type) {
-	case LoadedUpdates:
-		log.Printf("received %d items\n", len(msg))
-		m.updateList.SetItems(UpdatesToListItems(state.Updates))
-		m.loaded = true
-		return m, nil
+	case tea.WindowSizeMsg:
+		state.WindowSize = msg
+		m.updateList.SetSize(state.WindowSize.Width, state.WindowSize.Height)
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "esc":
@@ -96,6 +66,11 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			model := NewOutputModel()
 			return model, tea.Batch(model.(outputModel).spinner.Tick, GenerateReportCmd())
 		}
+	case LoadedUpdates:
+		log.Printf("received %d items\n", len(msg))
+		m.updateList.SetItems(UpdatesToListItems(state.Updates))
+		m.loaded = true
+		return m, nil
 	}
 
 	var cmd tea.Cmd
