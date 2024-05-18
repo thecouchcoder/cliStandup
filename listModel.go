@@ -5,8 +5,6 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/aes421/cliStandup/llm"
-
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -15,10 +13,9 @@ type ListModel struct {
 	updateList    list.Model
 	width, height int
 	loaded        bool
-	llm           llm.LLM
 }
 
-func NewListModel(llm llm.LLM) ListModel {
+func NewListModel() ListModel {
 
 	m := ListModel{
 		updateList: list.New(
@@ -27,7 +24,6 @@ func NewListModel(llm llm.LLM) ListModel {
 			0,
 			0),
 		loaded: false,
-		llm:    llm,
 	}
 
 	m.updateList.Title = "Sprint Updates"
@@ -90,7 +86,7 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case listModelkeyMap.Generate.Keys()[0]:
 			deprecatedmodels["list"] = m
 			model := NewOutputModel(m.width, m.height)
-			return model, tea.Batch(model.(outputModel).spinner.Tick, m.GenerateReportCmd())
+			return model, tea.Batch(model.(outputModel).spinner.Tick, GenerateReportCmd())
 		}
 	}
 

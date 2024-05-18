@@ -13,10 +13,6 @@ import (
 	"github.com/aes421/cliStandup/state"
 )
 
-type LLM interface {
-	Generate(context.Context) (string, error)
-}
-
 type chatGptCompletionRequest struct {
 	Model       string  `json:"model"`
 	Prompt      string  `json:"prompt"`

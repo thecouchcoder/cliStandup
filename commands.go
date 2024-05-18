@@ -79,7 +79,7 @@ func (m ListModel) DeleteUpdateCmd() tea.Cmd {
 	}
 }
 
-func (m ListModel) GenerateReportCmd() tea.Cmd {
+func GenerateReportCmd() tea.Cmd {
 	return func() tea.Msg {
 		log.Print("Generating report...")
 		if state.Config.ExternalCallsEnabled == false {
@@ -90,7 +90,7 @@ func (m ListModel) GenerateReportCmd() tea.Cmd {
 		ctx := context.Background()
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
-		content, err := m.llm.Generate(ctx)
+		content, err := state.LLMConnector.Generate(ctx)
 		if err != nil {
 			return FatalError(err.Error())
 		}

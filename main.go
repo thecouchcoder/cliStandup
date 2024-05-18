@@ -54,7 +54,7 @@ func Init() (map[string]tea.Model, error) {
 	}
 
 	log.Print("initializing llm...")
-	chatgpt := llm.NewChatGPT(
+	state.LLMConnector = llm.NewChatGPT(
 		state.Config.ChatGPT.Endpoint,
 		state.Config.ChatGPT.APIKey,
 		state.Config.ChatGPT.Model,
@@ -63,7 +63,7 @@ func Init() (map[string]tea.Model, error) {
 
 	log.Print("initializing models...")
 	initModels := make(map[string]tea.Model)
-	initModels["list"] = NewListModel(chatgpt)
+	initModels["list"] = NewListModel()
 
 	return initModels, nil
 }
