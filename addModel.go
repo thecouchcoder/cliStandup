@@ -54,7 +54,7 @@ func (m AddModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.textArea.Blur()
 				return m, nil
 			} else {
-				return models["list"], nil
+				return deprecatedmodels["list"], nil
 			}
 		// Can fix this functionality later
 		// case "ctrl+s":
@@ -62,8 +62,8 @@ func (m AddModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// 	return models["list"], m.SaveUpdateCmd
 		case "enter":
 			if !m.textArea.Focused() {
-				listModel := models["list"].(ListModel)
-				return models["list"], listModel.SaveUpdateCmd(m.textArea.Value())
+				listModel := deprecatedmodels["list"].(ListModel)
+				return deprecatedmodels["list"], listModel.SaveUpdateCmd(m.textArea.Value())
 			}
 		case "w":
 			if !m.textArea.Focused() {

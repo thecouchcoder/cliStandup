@@ -3,7 +3,6 @@ package llm
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"io"
 	"log"
@@ -11,6 +10,7 @@ import (
 	"os"
 
 	"github.com/aes421/cliStandup/db/dbmodel"
+	"github.com/aes421/cliStandup/state"
 )
 
 type LLM interface {
@@ -31,7 +31,6 @@ type chatGptCompletionResponse struct {
 }
 
 type chatgpt struct {
-	db          *sql.DB
 	endpoint    string
 	api_key     string
 	llmModel    string
@@ -39,9 +38,8 @@ type chatgpt struct {
 	maxTokens   int
 }
 
-func NewChatGPT(db *sql.DB, endpoint string, api_key string, llmModel string, temperature float32, maxTokens int) chatgpt {
+func NewChatGPT(endpoint string, api_key string, llmModel string, temperature float32, maxTokens int) chatgpt {
 	return chatgpt{
-		db:          db,
 		endpoint:    endpoint,
 		api_key:     api_key,
 		llmModel:    llmModel,
@@ -57,7 +55,7 @@ func (c chatgpt) Generate(ctx context.Context) (string, error) {
 	}
 
 	// read the db
-	updates, err := dbmodel.New(c.db).GetActiveUpdates(ctx)
+	updates, err := dbmodel.New(state.Db).GetActiveUpdates(ctx)
 	if err != nil {
 		return "", err
 	}

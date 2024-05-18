@@ -52,7 +52,7 @@ func (m outputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if k := msg.String(); k == "ctrl+c" || k == "q" || k == "esc" {
-			return models["list"], nil
+			return deprecatedmodels["list"], nil
 		}
 	case tea.WindowSizeMsg:
 		m.height = msg.Height

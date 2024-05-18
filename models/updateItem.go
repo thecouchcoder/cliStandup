@@ -1,10 +1,8 @@
-package main
+package models
 
 import "github.com/aes421/cliStandup/db/dbmodel"
 
-type LoadedUpdates []Update
-
-func dbToUpdate(updates []dbmodel.Update) []Update {
+func DbToUpdate(updates []dbmodel.Update) []Update {
 	items := make([]Update, len(updates))
 	for i, u := range updates {
 		items[i] = NewUpdate(u.ID, u.Description)
@@ -13,12 +11,12 @@ func dbToUpdate(updates []dbmodel.Update) []Update {
 }
 
 type Update struct {
-	id          int64
+	Id          int64
 	description string
 }
 
 func NewUpdate(id int64, description string) Update {
-	return Update{id: id, description: description}
+	return Update{Id: id, description: description}
 }
 
 func (u Update) Title() string {

@@ -9,29 +9,32 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	_ "embed"
+
+	"github.com/aes421/cliStandup/models"
+	"github.com/aes421/cliStandup/state"
 )
 
 type GeneratedReport string
 type FatalError string
-type LoadedUpdates []Update
+type LoadedUpdates []models.Update
 
 //go:embed db/schema.sql
 var ddl string
 
-func (m ListModel) LoadListCmd() tea.Msg {
+func LoadListCmd() tea.Msg {
 	log.Print("loading list...")
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	// query for updates
-	dbValues, err := dbmodel.New(m.db).GetActiveUpdates(ctx)
+	dbValues, err := dbmodel.New(state.Db).GetActiveUpdates(ctx)
 	if err != nil {
 		return FatalError(err.Error())
 	}
-	updates = dbToUpdate(dbValues)
+	state.Updates = models.DbToUpdate(dbValues)
 
-	return LoadedUpdates(updates)
+	return LoadedUpdates(state.Updates)
 }
 
 func (m ListModel) SaveUpdateCmd(description string) tea.Cmd {
@@ -40,17 +43,17 @@ func (m ListModel) SaveUpdateCmd(description string) tea.Cmd {
 		ctx := context.Background()
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
-		r, err := dbmodel.New(m.db).CreateUpdate(ctx, description)
+		r, err := dbmodel.New(state.Db).CreateUpdate(ctx, description)
 		if err != nil {
 			return FatalError(err.Error())
 		}
 
 		log.Print("update saved.")
-		updates = append([]Update{NewUpdate(r.ID, description)}, updates...)
+		state.Updates = append([]models.Update{models.NewUpdate(r.ID, description)}, state.Updates...)
 
 		// TODO find somewhere to do this
 		m.updateList.Select(0)
-		return LoadedUpdates(updates)
+		return LoadedUpdates(state.Updates)
 	}
 }
 
@@ -60,26 +63,26 @@ func (m ListModel) DeleteUpdateCmd() tea.Cmd {
 		ctx := context.Background()
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
-		mdl := m.updateList.SelectedItem().(Update)
-		err := dbmodel.New(m.db).ArchiveUpdate(ctx, mdl.id)
+		updateModel := m.updateList.SelectedItem().(models.Update)
+		err := dbmodel.New(state.Db).ArchiveUpdate(ctx, updateModel.Id)
 		if err != nil {
 			return FatalError(err.Error())
 		}
 
 		index := m.updateList.Index()
 
-		log.Print(updates[:index])
-		log.Print(updates[index+1:])
-		log.Print(updates)
-		updates = append(updates[:index], updates[index+1:]...)
-		return LoadedUpdates(updates)
+		log.Print(state.Updates[:index])
+		log.Print(state.Updates[index+1:])
+		log.Print(state.Updates)
+		state.Updates = append(state.Updates[:index], state.Updates[index+1:]...)
+		return LoadedUpdates(state.Updates)
 	}
 }
 
 func (m ListModel) GenerateReportCmd() tea.Cmd {
 	return func() tea.Msg {
 		log.Print("Generating report...")
-		if GetConfig().ExternalCallsEnabled == false {
+		if state.Config.ExternalCallsEnabled == false {
 			time.Sleep(5 * time.Second)
 			return GeneratedReport("external calls are disabled")
 		}

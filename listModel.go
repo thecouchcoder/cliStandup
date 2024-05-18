@@ -1,8 +1,6 @@
 package main
 
 import (
-	"database/sql"
-	_ "embed"
 	"log"
 
 	_ "modernc.org/sqlite"
@@ -17,11 +15,10 @@ type ListModel struct {
 	updateList    list.Model
 	width, height int
 	loaded        bool
-	db            *sql.DB
 	llm           llm.LLM
 }
 
-func NewListModel(db *sql.DB, llm llm.LLM) ListModel {
+func NewListModel(llm llm.LLM) ListModel {
 
 	m := ListModel{
 		updateList: list.New(
@@ -30,7 +27,6 @@ func NewListModel(db *sql.DB, llm llm.LLM) ListModel {
 			0,
 			0),
 		loaded: false,
-		db:     db,
 		llm:    llm,
 	}
 
@@ -41,7 +37,7 @@ func NewListModel(db *sql.DB, llm llm.LLM) ListModel {
 }
 
 func (m ListModel) Init() tea.Cmd {
-	return m.LoadListCmd
+	return LoadListCmd
 }
 
 func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -89,10 +85,10 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case listModelkeyMap.Delete.Keys()[0]:
 			return m, m.DeleteUpdateCmd()
 		case listModelkeyMap.Add.Keys()[0]:
-			models["list"] = m
+			deprecatedmodels["list"] = m
 			return NewAddModel(m.width, m.height), nil
 		case listModelkeyMap.Generate.Keys()[0]:
-			models["list"] = m
+			deprecatedmodels["list"] = m
 			model := NewOutputModel(m.width, m.height)
 			return model, tea.Batch(model.(outputModel).spinner.Tick, m.GenerateReportCmd())
 		}
