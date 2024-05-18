@@ -16,20 +16,14 @@ type ListModel struct {
 	loaded     bool
 }
 
-func InitListModel() ListModel {
-	m := NewListModel()
-	m.loaded = false
-	return m
-}
-
-func NewListModel() ListModel {
+func NewListModel(loaded bool) ListModel {
 	m := ListModel{
 		updateList: list.New(
 			[]list.Item{},
 			list.NewDefaultDelegate(),
 			0,
 			0),
-		loaded: true,
+		loaded: loaded,
 	}
 
 	m.updateList.Title = "Sprint Updates"
@@ -41,7 +35,7 @@ func NewListModel() ListModel {
 }
 
 func (m ListModel) Init() tea.Cmd {
-	return LoadListCmd
+	return LoadFromDb
 }
 
 func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -59,16 +53,16 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "esc":
 			return m, tea.Quit
 		case listModelkeyMap.Delete.Keys()[0]:
-			return m, m.DeleteUpdateCmd()
+			return m, DeleteUpdate(m.updateList.Index(), m.updateList.SelectedItem().(models.Update))
 		case listModelkeyMap.Add.Keys()[0]:
 			return NewAddModel(), nil
 		case listModelkeyMap.Generate.Keys()[0]:
 			model := NewOutputModel()
-			return model, tea.Batch(model.(outputModel).spinner.Tick, GenerateReportCmd())
+			return model, tea.Batch(model.(outputModel).spinner.Tick, GenerateReport())
 		}
 	case LoadedUpdates:
-		log.Printf("received %d items\n", len(msg))
 		m.updateList.SetItems(UpdatesToListItems(state.Updates))
+		m.updateList.Select(int(msg))
 		m.loaded = true
 		return m, nil
 	}

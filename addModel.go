@@ -55,7 +55,7 @@ func (m AddModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.textArea.Blur()
 				return m, nil
 			} else {
-				return NewListModel(), nil
+				return NewListModel(true), nil
 			}
 		// Can fix this functionality later
 		// case "ctrl+s":
@@ -63,7 +63,7 @@ func (m AddModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// 	return models["list"], m.SaveUpdateCmd
 		case "enter":
 			if !m.textArea.Focused() {
-				return NewListModel(), SaveUpdateCmd(m.textArea.Value())
+				return NewListModel(true), SaveUpdate(m.textArea.Value())
 			}
 		case "w":
 			if !m.textArea.Focused() {

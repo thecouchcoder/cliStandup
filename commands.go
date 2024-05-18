@@ -16,12 +16,12 @@ import (
 
 type GeneratedReport string
 type FatalError string
-type LoadedUpdates []models.Update
+type LoadedUpdates int
 
 //go:embed db/schema.sql
 var ddl string
 
-func LoadListCmd() tea.Msg {
+func LoadFromDb() tea.Msg {
 	log.Print("loading list...")
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -34,10 +34,10 @@ func LoadListCmd() tea.Msg {
 	}
 	state.Updates = models.DbToUpdate(dbValues)
 
-	return LoadedUpdates(state.Updates)
+	return LoadedUpdates(0)
 }
 
-func SaveUpdateCmd(description string) tea.Cmd {
+func SaveUpdate(description string) tea.Cmd {
 	return func() tea.Msg {
 		log.Printf("Saving update: %v", description)
 		ctx := context.Background()
@@ -51,35 +51,27 @@ func SaveUpdateCmd(description string) tea.Cmd {
 		log.Print("update saved.")
 		state.Updates = append([]models.Update{models.NewUpdate(r.ID, description)}, state.Updates...)
 
-		// TODO find somewhere to do this
-		//m.updateList.Select(0)
-		return LoadedUpdates(state.Updates)
+		return LoadedUpdates(0)
 	}
 }
 
-func (m ListModel) DeleteUpdateCmd() tea.Cmd {
+func DeleteUpdate(index int, item models.Update) tea.Cmd {
 	return func() tea.Msg {
-		log.Printf("Deleting update: %v", m.updateList.Index())
+		log.Printf("Deleting update: %v", index)
 		ctx := context.Background()
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
-		updateModel := m.updateList.SelectedItem().(models.Update)
-		err := dbmodel.New(state.Db).ArchiveUpdate(ctx, updateModel.Id)
+		err := dbmodel.New(state.Db).ArchiveUpdate(ctx, item.Id)
 		if err != nil {
 			return FatalError(err.Error())
 		}
 
-		index := m.updateList.Index()
-
-		log.Print(state.Updates[:index])
-		log.Print(state.Updates[index+1:])
-		log.Print(state.Updates)
 		state.Updates = append(state.Updates[:index], state.Updates[index+1:]...)
-		return LoadedUpdates(state.Updates)
+		return LoadedUpdates(index)
 	}
 }
 
-func GenerateReportCmd() tea.Cmd {
+func GenerateReport() tea.Cmd {
 	return func() tea.Msg {
 		log.Print("Generating report...")
 		if state.Config.ExternalCallsEnabled == false {

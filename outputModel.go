@@ -49,7 +49,7 @@ func (m outputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if k := msg.String(); k == "ctrl+c" || k == "q" || k == "esc" {
-			return NewListModel(), nil
+			return NewListModel(true), nil
 		}
 	case tea.WindowSizeMsg:
 		state.WindowSize = msg
