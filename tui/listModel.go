@@ -1,4 +1,4 @@
-package main
+package tui
 
 import (
 	"log"
@@ -7,17 +7,18 @@ import (
 
 	"github.com/aes421/cliStandup/models"
 	"github.com/aes421/cliStandup/state"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type ListModel struct {
+type listModel struct {
 	updateList list.Model
 	loaded     bool
 }
 
-func NewListModel(loaded bool) ListModel {
-	m := ListModel{
+func NewListModel(loaded bool) listModel {
+	m := listModel{
 		updateList: list.New(
 			[]list.Item{},
 			list.NewDefaultDelegate(),
@@ -27,18 +28,18 @@ func NewListModel(loaded bool) ListModel {
 	}
 
 	m.updateList.Title = "Sprint Updates"
-	m.updateList.AdditionalShortHelpKeys = getListModelKeys()
-	m.updateList.AdditionalFullHelpKeys = getListModelKeys()
+	m.updateList.AdditionalShortHelpKeys = func() []key.Binding { return getListModelKeys() }
+	m.updateList.AdditionalFullHelpKeys = func() []key.Binding { return getListModelKeys() }
 	m.updateList.SetItems(UpdatesToListItems(state.Updates))
 	m.updateList.SetSize(state.WindowSize.Width, state.WindowSize.Height)
 	return m
 }
 
-func (m ListModel) Init() tea.Cmd {
+func (m listModel) Init() tea.Cmd {
 	return LoadFromDb
 }
 
-func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m listModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if _, ok := msg.(FatalError); ok {
 		log.Fatal(msg)
 		return m, tea.Quit
@@ -49,14 +50,13 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		state.WindowSize = msg
 		m.updateList.SetSize(state.WindowSize.Width, state.WindowSize.Height)
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "esc":
+		if key.Matches(msg, Keymap.Esc) || msg.String() == "ctrl+c" {
 			return m, tea.Quit
-		case listModelkeyMap.Delete.Keys()[0]:
+		} else if key.Matches(msg, Keymap.Delete) {
 			return m, DeleteUpdate(m.updateList.Index(), m.updateList.SelectedItem().(models.Update))
-		case listModelkeyMap.Add.Keys()[0]:
+		} else if key.Matches(msg, Keymap.Add) {
 			return NewAddModel(), nil
-		case listModelkeyMap.Generate.Keys()[0]:
+		} else if key.Matches(msg, Keymap.Generate) {
 			model := NewOutputModel()
 			return model, tea.Batch(model.(outputModel).spinner.Tick, GenerateReport())
 		}
@@ -72,7 +72,7 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m ListModel) View() string {
+func (m listModel) View() string {
 	if !m.loaded {
 		return "Loading..."
 	}

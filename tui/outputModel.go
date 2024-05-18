@@ -1,4 +1,4 @@
-package main
+package tui
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/aes421/cliStandup/state"
 	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -48,7 +49,7 @@ func (m outputModel) Init() tea.Cmd {
 func (m outputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		if k := msg.String(); k == "ctrl+c" || k == "q" || k == "esc" {
+		if k := msg.String(); k == "ctrl+c" || key.Matches(msg, Keymap.Esc) || key.Matches(msg, Keymap.Quit) {
 			return NewListModel(true), nil
 		}
 	case tea.WindowSizeMsg:
@@ -82,10 +83,10 @@ func (m outputModel) View() string {
 			lipgloss.Left,
 			m.headerView(),
 			m.spinner.View(),
-			m.help.View(outputModelkeyMap),
+			m.help.View(m),
 		)
 	}
-	s := fmt.Sprintf("%s\n%s\n%s\n", m.headerView(), m.viewport.View(), m.help.View(outputModelkeyMap))
+	s := fmt.Sprintf("%s\n%s\n%s\n", m.headerView(), m.viewport.View(), m.help.View(m))
 	return s
 }
 
@@ -97,12 +98,20 @@ func (m *outputModel) headerView() string {
 
 func (m *outputModel) SetViewport() {
 	headerHeight := lipgloss.Height(m.headerView())
-	footerHeight := lipgloss.Height(m.help.View(outputModelkeyMap))
+	footerHeight := lipgloss.Height(m.help.View(m))
 	m.viewport.Width = state.WindowSize.Width
 	m.viewport.Height = state.WindowSize.Height - headerHeight - footerHeight
 	m.viewport.YPosition = headerHeight
 	m.viewport.SetContent(m.content)
 	m.help.Width = state.WindowSize.Width
+}
+
+func (m outputModel) ShortHelp() []key.Binding {
+	return getOutputModelsKeys()
+}
+
+func (m outputModel) FullHelp() [][]key.Binding {
+	return nil
 }
 
 func max(a, b int) int {

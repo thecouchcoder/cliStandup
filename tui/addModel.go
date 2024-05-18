@@ -1,4 +1,4 @@
-package main
+package tui
 
 import (
 	"github.com/aes421/cliStandup/state"
@@ -9,27 +9,15 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type AddModel struct {
+type addModel struct {
 	textArea textarea.Model
 	help     help.Model
-	keyMap   addModelKeys
 }
 
-func (m AddModel) ShortHelp() []key.Binding {
-	if m.textArea.Focused() {
-		return []key.Binding{m.keyMap.EscWriteMode}
-	}
-	return []key.Binding{m.keyMap.EscViewMode, m.keyMap.Write, m.keyMap.Save}
-}
-
-// Noop to satisfy the interface
-func (k AddModel) FullHelp() [][]key.Binding { return nil }
-
-func NewAddModel() AddModel {
-	m := AddModel{
+func NewAddModel() addModel {
+	m := addModel{
 		textArea: textarea.New(),
 		help:     help.New(),
-		keyMap:   addModelkeyMap,
 	}
 	m.textArea.Placeholder = "Enter your update here"
 	m.textArea.Focus()
@@ -42,11 +30,11 @@ func NewAddModel() AddModel {
 	return m
 }
 
-func (m AddModel) Init() tea.Cmd {
+func (m addModel) Init() tea.Cmd {
 	return nil
 }
 
-func (m AddModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m addModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -82,9 +70,19 @@ func (m AddModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m AddModel) View() string {
+func (m addModel) View() string {
 	helpView := m.help.View(m)
 	textAreaView := m.textArea.View()
 
 	return lipgloss.JoinVertical(lipgloss.Left, textAreaView, helpView)
 }
+
+func (m addModel) ShortHelp() []key.Binding {
+	if m.textArea.Focused() {
+		return getAddModelWriteModeKeys()
+	}
+	return getAddModelViewModeKeys()
+}
+
+// Noop to satisfy the interface
+func (k addModel) FullHelp() [][]key.Binding { return nil }

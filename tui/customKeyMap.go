@@ -1,25 +1,20 @@
-package main
+package tui
 
 import "github.com/charmbracelet/bubbles/key"
 
-type listModelKeys struct {
-	Add      key.Binding
-	Delete   key.Binding
-	Generate key.Binding
-}
-
-type addModelKeys struct {
+type keys struct {
+	Add          key.Binding
+	Delete       key.Binding
+	Generate     key.Binding
 	EscWriteMode key.Binding
 	EscViewMode  key.Binding
 	Write        key.Binding
 	Save         key.Binding
+	Esc          key.Binding
+	Quit         key.Binding
 }
 
-type outputModelKeys struct {
-	Esc key.Binding
-}
-
-var listModelkeyMap = listModelKeys{
+var Keymap = keys{
 	Add: key.NewBinding(
 		key.WithKeys("a"),
 		key.WithHelp("a", "add"),
@@ -31,21 +26,7 @@ var listModelkeyMap = listModelKeys{
 	Generate: key.NewBinding(
 		key.WithKeys("g"),
 		key.WithHelp("g", "generate"),
-	),
-}
-
-func getListModelKeys() func() []key.Binding {
-	return func() []key.Binding {
-		return []key.Binding{
-			listModelkeyMap.Add,
-			listModelkeyMap.Delete,
-			listModelkeyMap.Generate,
-		}
-	}
-}
-
-var addModelkeyMap = addModelKeys{
-	EscWriteMode: key.NewBinding(
+	), EscWriteMode: key.NewBinding(
 		key.WithKeys("esc"),
 		key.WithHelp("esc", "view")),
 	EscViewMode: key.NewBinding(
@@ -59,19 +40,32 @@ var addModelkeyMap = addModelKeys{
 		key.WithKeys("enter"),
 		key.WithHelp("enter", "save"),
 	),
-}
-
-var outputModelkeyMap = outputModelKeys{
 	Esc: key.NewBinding(
 		key.WithKeys("esc"),
 		key.WithHelp("esc", "back"),
 	),
+	Quit: key.NewBinding(
+		key.WithKeys("q"),
+		key.WithHelp("q", "back"),
+	),
 }
 
-func (m outputModelKeys) ShortHelp() []key.Binding {
-	return []key.Binding{outputModelkeyMap.Esc}
+func getListModelKeys() []key.Binding {
+	return []key.Binding{
+		Keymap.Add,
+		Keymap.Delete,
+		Keymap.Generate,
+	}
 }
 
-func (m outputModelKeys) FullHelp() [][]key.Binding {
-	return nil
+func getAddModelViewModeKeys() []key.Binding {
+	return []key.Binding{Keymap.EscViewMode, Keymap.Write, Keymap.Save}
+}
+
+func getAddModelWriteModeKeys() []key.Binding {
+	return []key.Binding{Keymap.EscWriteMode}
+}
+
+func getOutputModelsKeys() []key.Binding {
+	return []key.Binding{Keymap.Esc, Keymap.Quit}
 }

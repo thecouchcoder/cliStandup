@@ -1,4 +1,4 @@
-package main
+package tui
 
 import (
 	"context"
@@ -8,8 +8,6 @@ import (
 	"github.com/aes421/cliStandup/db/dbmodel"
 	tea "github.com/charmbracelet/bubbletea"
 
-	_ "embed"
-
 	"github.com/aes421/cliStandup/models"
 	"github.com/aes421/cliStandup/state"
 )
@@ -17,9 +15,6 @@ import (
 type GeneratedReport string
 type FatalError string
 type LoadedUpdates int
-
-//go:embed db/schema.sql
-var ddl string
 
 func LoadFromDb() tea.Msg {
 	log.Print("loading list...")
