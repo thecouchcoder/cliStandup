@@ -15,6 +15,7 @@ import (
 )
 
 var models = make(map[string]tea.Model)
+var updates []Update
 var config Config
 
 type Config struct {

@@ -2,14 +2,14 @@ package main
 
 import "github.com/aes421/cliStandup/db/dbmodel"
 
-type InitiallyLoadedUpdates []Update
+type LoadedUpdates []Update
 
-func NewUpdateItems(updates []dbmodel.Update) InitiallyLoadedUpdates {
+func dbToUpdate(updates []dbmodel.Update) []Update {
 	items := make([]Update, len(updates))
 	for i, u := range updates {
 		items[i] = NewUpdate(u.ID, u.Description)
 	}
-	return InitiallyLoadedUpdates(items)
+	return items
 }
 
 type Update struct {

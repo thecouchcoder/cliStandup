@@ -17,7 +17,7 @@ import (
 )
 
 type ListModel struct {
-	updates       list.Model
+	updateList    list.Model
 	width, height int
 	loaded        bool
 	db            *sql.DB
@@ -27,7 +27,7 @@ type ListModel struct {
 func NewListModel(db *sql.DB, llm llm.LLM) ListModel {
 
 	m := ListModel{
-		updates: list.New(
+		updateList: list.New(
 			[]list.Item{},
 			list.NewDefaultDelegate(),
 			0,
@@ -37,9 +37,9 @@ func NewListModel(db *sql.DB, llm llm.LLM) ListModel {
 		llm:    llm,
 	}
 
-	m.updates.Title = "Sprint Updates"
-	m.updates.AdditionalShortHelpKeys = getListModelKeys()
-	m.updates.AdditionalFullHelpKeys = getListModelKeys()
+	m.updateList.Title = "Sprint Updates"
+	m.updateList.AdditionalShortHelpKeys = getListModelKeys()
+	m.updateList.AdditionalFullHelpKeys = getListModelKeys()
 	return m
 }
 
@@ -57,24 +57,33 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg := msg.(type) {
 		case tea.WindowSizeMsg:
 			m.width, m.height = msg.Width, msg.Height
-			m.updates.SetSize(m.width, m.height)
-		case InitiallyLoadedUpdates:
+			m.updateList.SetSize(m.width, m.height)
+
+		// TODO this is duplicated
+		case LoadedUpdates:
 			log.Printf("received %d items\n", len(msg))
 			items := make([]list.Item, len(msg))
 			for i, u := range msg {
 				items[i] = u
 			}
-			m.updates.SetItems(items)
+			m.updateList.SetItems(items)
 			m.loaded = true
+			return m, nil
 		}
 
 		return m, nil
 	}
 
-	m.updates.SetSize(m.width, m.height)
+	m.updateList.SetSize(m.width, m.height)
 	switch msg := msg.(type) {
-	case UpdatedModel:
-		m = ListModel(msg)
+	case LoadedUpdates:
+		log.Printf("received %d items\n", len(msg))
+		items := make([]list.Item, len(msg))
+		for i, u := range msg {
+			items[i] = u
+		}
+		m.updateList.SetItems(items)
+		m.loaded = true
 		return m, nil
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -93,7 +102,7 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	var cmd tea.Cmd
-	m.updates, cmd = m.updates.Update(msg)
+	m.updateList, cmd = m.updateList.Update(msg)
 	return m, cmd
 }
 
@@ -101,7 +110,7 @@ func (m ListModel) View() string {
 	if !m.loaded {
 		return "Loading..."
 	}
-	return m.updates.View()
+	return m.updateList.View()
 }
 
 //go:embed db/schema.sql
@@ -114,12 +123,13 @@ func (m ListModel) LoadListCmd() tea.Msg {
 	defer cancel()
 
 	// query for updates
-	updates, err := dbmodel.New(m.db).GetActiveUpdates(ctx)
+	dbValues, err := dbmodel.New(m.db).GetActiveUpdates(ctx)
 	if err != nil {
 		return FatalError(err.Error())
 	}
+	updates = dbToUpdate(dbValues)
 
-	return NewUpdateItems(updates)
+	return LoadedUpdates(updates)
 }
 
 type FatalError string
@@ -136,26 +146,33 @@ func (m ListModel) SaveUpdateCmd(description string) tea.Cmd {
 		}
 
 		log.Print("update saved.")
-		m.updates.InsertItem(0, NewUpdate(r.ID, description))
-		m.updates.Select(0)
-		return UpdatedModel(m)
+		updates = append([]Update{NewUpdate(r.ID, description)}, updates...)
+
+		// TODO find somewhere to do this
+		m.updateList.Select(0)
+		return LoadedUpdates(updates)
 	}
 }
 
 func (m ListModel) DeleteUpdateCmd() tea.Cmd {
 	return func() tea.Msg {
-		log.Printf("Deleting update: %v", m.updates.Index())
+		log.Printf("Deleting update: %v", m.updateList.Index())
 		ctx := context.Background()
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
-		mdl := m.updates.SelectedItem().(Update)
+		mdl := m.updateList.SelectedItem().(Update)
 		err := dbmodel.New(m.db).ArchiveUpdate(ctx, mdl.id)
 		if err != nil {
 			return FatalError(err.Error())
 		}
 
-		m.updates.RemoveItem(m.updates.Index())
-		return UpdatedModel(m)
+		index := m.updateList.Index()
+
+		log.Print(updates[:index])
+		log.Print(updates[index+1:])
+		log.Print(updates)
+		updates = append(updates[:index], updates[index+1:]...)
+		return LoadedUpdates(updates)
 	}
 }
 
@@ -178,7 +195,5 @@ func (m ListModel) GenerateReportCmd() tea.Cmd {
 		return GeneratedReport(content)
 	}
 }
-
-type UpdatedModel ListModel
 
 type GeneratedReport string
