@@ -1,14 +1,8 @@
 package models
 
-import "github.com/aes421/cliStandup/db/dbmodel"
-
-func DbToUpdate(updates []dbmodel.Update) []Update {
-	items := make([]Update, len(updates))
-	for i, u := range updates {
-		items[i] = NewUpdate(u.ID, u.Description)
-	}
-	return items
-}
+import (
+	"github.com/aes421/cliStandup/db/dbmodel"
+)
 
 type Update struct {
 	Id          int64
@@ -29,4 +23,12 @@ func (u Update) Description() string {
 
 func (u Update) FilterValue() string {
 	return u.description
+}
+
+func DbToUpdate(updates []dbmodel.Update) []Update {
+	items := make([]Update, len(updates))
+	for i, u := range updates {
+		items[i] = NewUpdate(u.ID, u.Description)
+	}
+	return items
 }

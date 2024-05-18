@@ -5,18 +5,18 @@ import (
 
 	_ "modernc.org/sqlite"
 
+	"github.com/aes421/cliStandup/models"
+	"github.com/aes421/cliStandup/state"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 type ListModel struct {
-	updateList    list.Model
-	width, height int
-	loaded        bool
+	updateList list.Model
+	loaded     bool
 }
 
-func NewListModel() ListModel {
-
+func InitListModel() ListModel {
 	m := ListModel{
 		updateList: list.New(
 			[]list.Item{},
@@ -29,6 +29,24 @@ func NewListModel() ListModel {
 	m.updateList.Title = "Sprint Updates"
 	m.updateList.AdditionalShortHelpKeys = getListModelKeys()
 	m.updateList.AdditionalFullHelpKeys = getListModelKeys()
+	m.updateList.SetItems(UpdatesToListItems(state.Updates))
+	return m
+}
+
+func NewListModel() ListModel {
+	m := ListModel{
+		updateList: list.New(
+			[]list.Item{},
+			list.NewDefaultDelegate(),
+			0,
+			0),
+		loaded: true,
+	}
+
+	m.updateList.Title = "Sprint Updates"
+	m.updateList.AdditionalShortHelpKeys = getListModelKeys()
+	m.updateList.AdditionalFullHelpKeys = getListModelKeys()
+	m.updateList.SetItems(UpdatesToListItems(state.Updates))
 	return m
 }
 
@@ -45,17 +63,13 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if !m.loaded {
 		switch msg := msg.(type) {
 		case tea.WindowSizeMsg:
-			m.width, m.height = msg.Width, msg.Height
-			m.updateList.SetSize(m.width, m.height)
+			state.WindowSize = msg
+			m.updateList.SetSize(state.WindowSize.Width, state.WindowSize.Height)
 
 		// TODO this is duplicated
 		case LoadedUpdates:
 			log.Printf("received %d items\n", len(msg))
-			items := make([]list.Item, len(msg))
-			for i, u := range msg {
-				items[i] = u
-			}
-			m.updateList.SetItems(items)
+			m.updateList.SetItems(UpdatesToListItems(state.Updates))
 			m.loaded = true
 			return m, nil
 		}
@@ -63,15 +77,11 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	m.updateList.SetSize(m.width, m.height)
+	m.updateList.SetSize(state.WindowSize.Width, state.WindowSize.Height)
 	switch msg := msg.(type) {
 	case LoadedUpdates:
 		log.Printf("received %d items\n", len(msg))
-		items := make([]list.Item, len(msg))
-		for i, u := range msg {
-			items[i] = u
-		}
-		m.updateList.SetItems(items)
+		m.updateList.SetItems(UpdatesToListItems(state.Updates))
 		m.loaded = true
 		return m, nil
 	case tea.KeyMsg:
@@ -81,11 +91,9 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case listModelkeyMap.Delete.Keys()[0]:
 			return m, m.DeleteUpdateCmd()
 		case listModelkeyMap.Add.Keys()[0]:
-			deprecatedmodels["list"] = m
-			return NewAddModel(m.width, m.height), nil
+			return NewAddModel(), nil
 		case listModelkeyMap.Generate.Keys()[0]:
-			deprecatedmodels["list"] = m
-			model := NewOutputModel(m.width, m.height)
+			model := NewOutputModel()
 			return model, tea.Batch(model.(outputModel).spinner.Tick, GenerateReportCmd())
 		}
 	}
@@ -100,4 +108,12 @@ func (m ListModel) View() string {
 		return "Loading..."
 	}
 	return m.updateList.View()
+}
+
+func UpdatesToListItems(updates []models.Update) []list.Item {
+	items := make([]list.Item, len(updates))
+	for i, u := range updates {
+		items[i] = u
+	}
+	return items
 }

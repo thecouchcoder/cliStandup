@@ -37,7 +37,7 @@ func LoadListCmd() tea.Msg {
 	return LoadedUpdates(state.Updates)
 }
 
-func (m ListModel) SaveUpdateCmd(description string) tea.Cmd {
+func SaveUpdateCmd(description string) tea.Cmd {
 	return func() tea.Msg {
 		log.Printf("Saving update: %v", description)
 		ctx := context.Background()
@@ -52,7 +52,7 @@ func (m ListModel) SaveUpdateCmd(description string) tea.Cmd {
 		state.Updates = append([]models.Update{models.NewUpdate(r.ID, description)}, state.Updates...)
 
 		// TODO find somewhere to do this
-		m.updateList.Select(0)
+		//m.updateList.Select(0)
 		return LoadedUpdates(state.Updates)
 	}
 }

@@ -15,9 +15,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-var deprecatedmodels = make(map[string]tea.Model)
-
-func Init() (map[string]tea.Model, error) {
+func Init() error {
 	log.Print("initializing database...")
 	ctx := context.Background()
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -32,25 +30,25 @@ func Init() (map[string]tea.Model, error) {
 	var err error
 	state.Db, err = sql.Open("sqlite", "cliStandup.db")
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if _, err := state.Db.ExecContext(ctx, ddl); err != nil {
-		return nil, err
+		return err
 	}
 
 	log.Print("reading config...")
 	configFile, err := os.Open("config/config.json")
 	if err != nil {
 		log.Fatal(err)
-		return nil, err
+		return err
 	}
 	defer configFile.Close()
 	jsonParser := json.NewDecoder(configFile)
 
 	if err := jsonParser.Decode(&state.Config); err != nil {
 		log.Fatal(err)
-		return nil, err
+		return err
 	}
 
 	log.Print("initializing llm...")
@@ -62,10 +60,8 @@ func Init() (map[string]tea.Model, error) {
 		state.Config.ChatGPT.MaxTokens)
 
 	log.Print("initializing models...")
-	initModels := make(map[string]tea.Model)
-	initModels["list"] = NewListModel()
 
-	return initModels, nil
+	return nil
 }
 func main() {
 	os.Remove("debug.log")
@@ -76,13 +72,13 @@ func main() {
 	}
 	defer f.Close()
 
-	models, err := Init()
+	err = Init()
 	if err != nil {
 		log.Fatal(err)
 		os.Exit(1)
 	}
 	defer state.Db.Close()
-	p := tea.NewProgram(models["list"], tea.WithAltScreen())
+	p := tea.NewProgram(InitListModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
 		os.Exit(1)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/aes421/cliStandup/state"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textarea"
@@ -24,7 +25,7 @@ func (m AddModel) ShortHelp() []key.Binding {
 // Noop to satisfy the interface
 func (k AddModel) FullHelp() [][]key.Binding { return nil }
 
-func NewAddModel(width, height int) AddModel {
+func NewAddModel() AddModel {
 	m := AddModel{
 		textArea: textarea.New(),
 		help:     help.New(),
@@ -32,10 +33,10 @@ func NewAddModel(width, height int) AddModel {
 	}
 	m.textArea.Placeholder = "Enter your update here"
 	m.textArea.Focus()
-	m.textArea.SetWidth(width)
-	m.textArea.SetHeight(height - 1)
+	m.textArea.SetWidth(state.WindowSize.Width)
+	m.textArea.SetHeight(state.WindowSize.Height - 1)
 	m.textArea.CharLimit = 0 // unlimited
-	m.help.Width = width
+	m.help.Width = state.WindowSize.Width
 	m.help.ShowAll = false
 
 	return m
@@ -54,7 +55,7 @@ func (m AddModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.textArea.Blur()
 				return m, nil
 			} else {
-				return deprecatedmodels["list"], nil
+				return NewListModel(), nil
 			}
 		// Can fix this functionality later
 		// case "ctrl+s":
@@ -62,8 +63,7 @@ func (m AddModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// 	return models["list"], m.SaveUpdateCmd
 		case "enter":
 			if !m.textArea.Focused() {
-				listModel := deprecatedmodels["list"].(ListModel)
-				return deprecatedmodels["list"], listModel.SaveUpdateCmd(m.textArea.Value())
+				return NewListModel(), SaveUpdateCmd(m.textArea.Value())
 			}
 		case "w":
 			if !m.textArea.Focused() {

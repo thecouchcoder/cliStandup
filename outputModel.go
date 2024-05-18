@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aes421/cliStandup/state"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -18,8 +19,6 @@ var titleStyle = func() lipgloss.Style {
 }()
 
 type outputModel struct {
-	width      int
-	height     int
 	content    string
 	generating bool
 	viewport   viewport.Model
@@ -27,12 +26,10 @@ type outputModel struct {
 	spinner    spinner.Model
 }
 
-func NewOutputModel(width int, height int) tea.Model {
+func NewOutputModel() tea.Model {
 
-	viewport := viewport.New(width, height-1)
+	viewport := viewport.New(state.WindowSize.Width, state.WindowSize.Height-1)
 	m := outputModel{
-		width:      width,
-		height:     height,
 		generating: true,
 		viewport:   viewport,
 		help:       help.New(),
@@ -52,11 +49,10 @@ func (m outputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		if k := msg.String(); k == "ctrl+c" || k == "q" || k == "esc" {
-			return deprecatedmodels["list"], nil
+			return NewListModel(), nil
 		}
 	case tea.WindowSizeMsg:
-		m.height = msg.Height
-		m.width = msg.Width
+		state.WindowSize = msg
 		m.SetViewport()
 
 	case GeneratedReport:
@@ -102,11 +98,11 @@ func (m *outputModel) headerView() string {
 func (m *outputModel) SetViewport() {
 	headerHeight := lipgloss.Height(m.headerView())
 	footerHeight := lipgloss.Height(m.help.View(outputModelkeyMap))
-	m.viewport.Width = m.width
-	m.viewport.Height = m.height - headerHeight - footerHeight
+	m.viewport.Width = state.WindowSize.Width
+	m.viewport.Height = state.WindowSize.Height - headerHeight - footerHeight
 	m.viewport.YPosition = headerHeight
 	m.viewport.SetContent(m.content)
-	m.help.Width = m.width
+	m.help.Width = state.WindowSize.Width
 }
 
 func max(a, b int) int {
